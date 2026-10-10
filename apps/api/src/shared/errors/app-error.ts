@@ -29,3 +29,15 @@ export class NotFoundError extends AppError {
     super(message, 404, "NOT_FOUND", details);
   }
 }
+
+export class UnauthorizedError extends AppError {
+  constructor(message: string, details?: unknown) {
+    super(message, 401, "UNAUTHORIZED", details);
+  }
+}
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string, details?: unknown) {
+    super(message, 503, "SERVICE_UNAVAILABLE", details);
+  }
+}

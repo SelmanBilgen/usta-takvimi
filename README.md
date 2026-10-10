@@ -21,8 +21,11 @@ UstaTakvimi, insaat sirketleri icin uzmanlik bazli musaitlik takvimi, musteri ta
 1. Bagimliliklari kur:
 	 npm install
 2. MySQL veritabanini hazirla ve [database/schema.sql](database/schema.sql) dosyasini calistir.
-3. API ortam degiskenlerini olustur:
+3. Iskelet verisini yukle:
+	 - [database/seed.sql](database/seed.sql) dosyasini MySQL veritabanina calistir.
+4. API ortam degiskenlerini olustur:
 	 - [apps/api/.env.example](apps/api/.env.example) dosyasini [apps/api/.env](apps/api/.env) olarak kopyala ve duzenle.
+	 - Varsayilan admin girisi: username=admin, password=admin123
 
 ## Run
 

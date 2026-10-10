@@ -1,4 +1,5 @@
 import { dbPool } from "../../shared/db/pool.js";
+import { createDateSpan, fallbackState, isDatabaseAvailable } from "../../shared/fallback-store.js";
 
 interface CapacityRow {
   date: string;
@@ -11,6 +12,24 @@ export async function getDailyCapacities(
   startDate: string,
   endDate: string
 ): Promise<CapacityRow[]> {
+  if (!(await isDatabaseAvailable())) {
+    const totalCapacity = fallbackState.workers.filter(
+      (worker) => worker.expertise_id === expertiseId && worker.daily_status === "ACTIVE"
+    ).length;
+
+    return createDateSpan(startDate, endDate).map((date) => ({
+      date,
+      totalCapacity,
+      usedCapacity: fallbackState.assignments
+        .filter((assignment) => assignment.assignment_date === date)
+        .filter((assignment) =>
+          fallbackState.workers.some(
+            (worker) => worker.id === assignment.worker_id && worker.expertise_id === expertiseId
+          )
+        ).length
+    }));
+  }
+
   const [rows] = await dbPool.query(
     `
     WITH RECURSIVE date_span AS (

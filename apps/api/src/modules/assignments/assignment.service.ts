@@ -1,9 +1,11 @@
 import { ConflictError, NotFoundError, ValidationError } from "../../shared/errors/app-error.js";
 import {
   assignWorkersToRequestTransactional,
+  assignWorkersByDateTransactional,
   findWorkerConflicts,
   getRequestDetail,
   listExpertiseWorkers,
+  listRequestAssignments,
   listPendingRequests
 } from "./assignment.repository.js";
 
@@ -22,8 +24,10 @@ export async function getAvailableWorkersForRequest(requestId: number) {
   const conflicts = await findWorkerConflicts(
     workers.map((w) => w.workerId),
     request.start_date,
-    request.end_date
+    request.end_date,
+    requestId
   );
+  const assignments = await listRequestAssignments(requestId);
 
   const conflictMap = new Map<number, string[]>();
   for (const conflict of conflicts) {
@@ -34,6 +38,10 @@ export async function getAvailableWorkersForRequest(requestId: number) {
 
   return {
     requestId,
+    assignmentsByDate: assignments.reduce<Record<string, Array<{ workerId: number; workerName: string }>>>((grouped, assignment) => {
+      (grouped[assignment.date] ??= []).push({ workerId: assignment.workerId, workerName: assignment.workerName });
+      return grouped;
+    }, {}),
     workers: workers.map((worker) => {
       const conflictingDates = conflictMap.get(worker.workerId) ?? [];
       return {
@@ -45,6 +53,34 @@ export async function getAvailableWorkersForRequest(requestId: number) {
       };
     })
   };
+}
+
+export async function assignWorkersByDate(
+  requestId: number,
+  dailyAssignments: Array<{ date: string; workerIds: number[] }>
+) {
+  const request = await getRequestDetail(requestId);
+  if (!request) throw new NotFoundError("Request not found");
+  const dates = new Set(dailyAssignments.map((day) => day.date));
+  if (dates.size !== dailyAssignments.length) throw new ValidationError("Each request date must be submitted once");
+  try {
+    return {
+      requestId,
+      ...await assignWorkersByDateTransactional(requestId, dailyAssignments)
+    };
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "message" in error) {
+      const message = String((error as { message: string }).message);
+      if (message.includes("Duplicate entry") || message === "DUPLICATE_ASSIGNMENT") {
+        throw new ConflictError("A selected worker is already assigned on one of those dates");
+      }
+      if (message === "REQUEST_NOT_FOUND") throw new NotFoundError("Request not found");
+      if (message === "REQUEST_NOT_ASSIGNABLE") throw new ValidationError("Request is not assignable in current state");
+      if (message === "WORKER_EXPERTISE_OR_STATUS_MISMATCH") throw new ValidationError("Selected workers must be active and match the request expertise");
+      if (message === "INVALID_DAILY_ASSIGNMENT") throw new ValidationError("Assignment dates must be within the request, with no duplicate workers per day");
+    }
+    throw error;
+  }
 }
 
 export async function assignWorkers(requestId: number, workerIds: number[]) {

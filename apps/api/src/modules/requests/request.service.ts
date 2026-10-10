@@ -4,12 +4,13 @@ import { ValidationError } from "../../shared/errors/app-error.js";
 import { createRequest } from "./request.repository.js";
 
 interface NewRequestInput {
-  clientId: number;
+  clientId?: number;
   expertiseId: number;
   startDate: string;
   endDate: string;
   description?: string;
   estimatedWorkerCount: number;
+  contact?: { name: string; phone: string; email?: string };
 }
 
 export async function createNewRequest(input: NewRequestInput): Promise<{ requestId: number; status: RequestStatus }> {
@@ -19,6 +20,10 @@ export async function createNewRequest(input: NewRequestInput): Promise<{ reques
 
   if (input.endDate < input.startDate) {
     throw new ValidationError("endDate cannot be before startDate");
+  }
+
+  if (!input.clientId && !input.contact) {
+    throw new ValidationError("Guest requests require contact details");
   }
 
   const requestId = await createRequest(input);
