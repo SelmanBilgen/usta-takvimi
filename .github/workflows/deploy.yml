@@ -20,14 +20,13 @@ jobs:
         with:
           node-version: '20' # Match your Spaceship Node version
           cache: 'npm'
-          cache-dependency-path: './apps/web/package-lock.json' # Updated path
+          cache-dependency-path: 'package-lock.json'
 
       # 3. Build the Next.js Web App
       - name: Build Next.js Web App
         run: |
-          cd apps/web
           npm ci
-          npm run build
+          npm run build --workspace=@ustatakvimi/web
         env:
           NEXT_PUBLIC_API_URL: https://atinada.com # Your live production API domain
 
@@ -37,11 +36,12 @@ jobs:
           mkdir -p deploy/web
           mkdir -p deploy/api
           
-          # Copy Next.js standalone production build files (Updated paths)
-          cp -r apps/web/.next deploy/web/
+          # Copy the standalone Next.js server and its static assets
+          cp -r apps/web/.next/standalone/apps/web/. deploy/web/
+          cp -r apps/web/.next/standalone/node_modules deploy/web/
+          mkdir -p deploy/web/.next
+          cp -r apps/web/.next/static deploy/web/.next/
           cp -r apps/web/public deploy/web/
-          cp apps/web/package.json deploy/web/
-          cp apps/web/server.js deploy/web/
           
           # Copy backend API files (Updated paths)
           cp -r apps/api/* deploy/api/
