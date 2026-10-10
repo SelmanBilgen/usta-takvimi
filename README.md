@@ -34,6 +34,12 @@ UstaTakvimi, insaat sirketleri icin uzmanlik bazli musaitlik takvimi, musteri ta
 - Web:
 	npm run dev:web
 
+## Shared Hosting Deployment
+
+The GitHub Actions workflow builds the web app as a static export and uploads the contents of `apps/web/out` to the FTP server directory `/`. Confirm that this FTP directory is the document root for `atinada.com`; if the hosting account uses a different document root, update `server-dir` in `.github/workflows/deploy.yml` to match it. The workflow runs on pushes to `main`.
+
+The Express API is not started by an FTP upload. API-backed features require the API to run separately on a Node.js host, with `https://atinada.com/api/v1` routed to that service. Login, data loading, and other API features will not work until that service and its database are configured.
+
 Varsayilan adresler:
 
 - API: http://localhost:4000
