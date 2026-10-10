@@ -44,6 +44,7 @@ jobs:
           # Copy compiled backend API build output
           cp -r apps/api/dist/* deploy/api/
           cp apps/api/package.json deploy/api/
+          cp apps/api/server.js deploy/api/ 
           
       # 4. Upload production ready bundle to Spaceship
       - name: FTP Deploy to Spaceship Server
