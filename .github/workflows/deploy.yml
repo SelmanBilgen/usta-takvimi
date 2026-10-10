@@ -14,36 +14,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Node.js environment
+      # 2. Set up Node.js environment (Caching removed to fix resolution error)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Match your Spaceship Node version
-          cache: 'npm'
-          cache-dependency-path: './apps/web/package-lock.json' # Updated path
+          node-version: '20'
 
       # 3. Build the Next.js Web App
       - name: Build Next.js Web App
         run: |
           cd apps/web
-          npm ci
+          npm ci || npm install --legacy-peer-deps
           npm run build
         env:
           NEXT_PUBLIC_API_URL: https://atinada.com # Your live production API domain
 
-      # 4. Prepare files for deployment (Exclude development fluff)
+      # 4. Prepare files for deployment
       - name: Organize production files
         run: |
           mkdir -p deploy/web
           mkdir -p deploy/api
           
-          # Copy Next.js standalone production build files (Updated paths)
+          # Copy Next.js standalone production build files
           cp -r apps/web/.next deploy/web/
           cp -r apps/web/public deploy/web/
           cp apps/web/package.json deploy/web/
           cp apps/web/server.js deploy/web/
           
-          # Copy backend API files (Updated paths)
+          # Copy backend API files
           cp -r apps/api/* deploy/api/
           rm -rf deploy/api/node_modules
 
@@ -54,5 +52,5 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./deploy/ # Uploads only our optimized deployment folder
-          server-dir: / # Keeps it relative to your FTP login directory
+          local-dir: ./deploy/
+          server-dir: ./ # Relative path fallback for cPanel directories
