@@ -22,37 +22,20 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
 
-      # 3. Build the Next.js Web App
+      # 3. Build the static Next.js Web App
       - name: Build Next.js Web App
         run: |
           npm ci
           npm run build --workspace=@ustatakvimi/web
         env:
-          NEXT_PUBLIC_API_URL: https://atinada.com # Your live production API domain
+          NEXT_PUBLIC_API_URL: https://atinada.com/api/v1
 
-      # 4. Prepare files for deployment (Exclude development fluff)
-      - name: Organize production files
-        run: |
-          mkdir -p deploy/web
-          mkdir -p deploy/api
-          
-          # Copy the standalone Next.js server and its static assets
-          cp -r apps/web/.next/standalone/apps/web/. deploy/web/
-          cp -r apps/web/.next/standalone/node_modules deploy/web/
-          mkdir -p deploy/web/.next
-          cp -r apps/web/.next/static deploy/web/.next/
-          cp -r apps/web/public deploy/web/
-          
-          # Copy backend API files (Updated paths)
-          cp -r apps/api/* deploy/api/
-          rm -rf deploy/api/node_modules
-
-      # 5. Upload production ready bundle to Spaceship
+      # 4. Upload the static site directly to the FTP document root
       - name: FTP Deploy to Spaceship Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./deploy/ # Uploads only our optimized deployment folder
-          server-dir: / # Keeps it relative to your FTP login directory
+          local-dir: ./apps/web/out/
+          server-dir: /
