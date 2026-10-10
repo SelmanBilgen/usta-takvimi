@@ -14,13 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Node.js environment (Caching removed to fix resolution error)
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      # 3. Build the Next.js Web App
+      # 2. Build the Next.js Web App (Uses the runner's native Node engine directly)
       - name: Build Next.js Web App
         run: |
           cd apps/web
@@ -29,7 +23,7 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: https://atinada.com # Your live production API domain
 
-      # 4. Prepare files for deployment
+      # 3. Prepare files for deployment
       - name: Organize production files
         run: |
           mkdir -p deploy/web
@@ -45,7 +39,7 @@ jobs:
           cp -r apps/api/* deploy/api/
           rm -rf deploy/api/node_modules
 
-      # 5. Upload production ready bundle to Spaceship
+      # 4. Upload production ready bundle to Spaceship
       - name: FTP Deploy to Spaceship Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -53,4 +47,4 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./deploy/
-          server-dir: ./ # Relative path fallback for cPanel directories
+          server-dir: ./ 
