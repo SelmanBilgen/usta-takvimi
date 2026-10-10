@@ -1,0 +1,58 @@
+name: Deploy to Spaceship Hosting
+
+on:
+  push:
+    branches:
+      - main # Triggers deployment when you push to your main branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Pull down the code from GitHub
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Match your Spaceship Node version
+          cache: 'npm'
+          cache-dependency-path: './apps/web/package-lock.json' # Updated path
+
+      # 3. Build the Next.js Web App
+      - name: Build Next.js Web App
+        run: |
+          cd apps/web
+          npm ci
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://atinada.com # Your live production API domain
+
+      # 4. Prepare files for deployment (Exclude development fluff)
+      - name: Organize production files
+        run: |
+          mkdir -p deploy/web
+          mkdir -p deploy/api
+          
+          # Copy Next.js standalone production build files (Updated paths)
+          cp -r apps/web/.next deploy/web/
+          cp -r apps/web/public deploy/web/
+          cp apps/web/package.json deploy/web/
+          cp apps/web/server.js deploy/web/
+          
+          # Copy backend API files (Updated paths)
+          cp -r apps/api/* deploy/api/
+          rm -rf deploy/api/node_modules
+
+      # 5. Upload production ready bundle to Spaceship
+      - name: FTP Deploy to Spaceship Server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./deploy/ # Uploads only our optimized deployment folder
+          server-dir: / # Keeps it relative to your FTP login directory
