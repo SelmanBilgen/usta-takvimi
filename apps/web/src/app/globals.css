@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(30, 168, 133, 0.25), transparent 32%),
+    radial-gradient(circle at 88% 70%, rgba(19, 134, 108, 0.2), transparent 35%),
+    linear-gradient(160deg, #f8fffd 0%, #eef8f4 42%, #f7faf9 100%);
+  color: #0f2320;
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+}

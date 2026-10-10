@@ -1,0 +1,16 @@
+{
+  "name": "usta-takvimi",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @ustatakvimi/web",
+    "dev:api": "npm run dev -w @ustatakvimi/api",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  }
+}
