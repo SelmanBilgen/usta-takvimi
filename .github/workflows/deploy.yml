@@ -14,31 +14,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Build the Next.js Web App (Uses the runner's native Node engine directly)
-      - name: Build Next.js Web App
+      # 2. Build the Next.js Web App and Compile the API
+      - name: Build Web App and API
         run: |
+          # Build Frontend
           cd apps/web
           npm ci || npm install --legacy-peer-deps
           npm run build
+          
+          # Build Backend API
+          cd ../api
+          npm ci || npm install --legacy-peer-deps
+          npm run build --if-present
         env:
           NEXT_PUBLIC_API_URL: https://atinada.com # Your live production API domain
 
-      # 3. Prepare files for deployment
+      # 3. Organize production files with corrected paths
       - name: Organize production files
         run: |
           mkdir -p deploy/web
           mkdir -p deploy/api
           
-          # Copy Next.js standalone production build files
+          # Copy Next.js frontend build files
           cp -r apps/web/.next deploy/web/
           cp -r apps/web/public deploy/web/
           cp apps/web/package.json deploy/web/
           cp apps/web/server.js deploy/web/
           
-          # Copy backend API files
-          cp -r apps/api/* deploy/api/
-          rm -rf deploy/api/node_modules
-
+          # Copy compiled backend API build output
+          cp -r apps/api/dist/* deploy/api/
+          cp apps/api/package.json deploy/api/
+          
       # 4. Upload production ready bundle to Spaceship
       - name: FTP Deploy to Spaceship Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
