@@ -44,7 +44,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./apps/web/out/
-          server-dir: /deploy/web/
+          server-dir: ./deploy/web/
 
       # --- 4. ADIM: BACKEND'İ CPANEL'E FTP İLE GÖNDERME ---
       - name: Deploy Backend to cPanel
@@ -54,4 +54,4 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./apps/api/dist/
-          server-dir: /deploy/api/
+          server-dir: ./deploy/api/
