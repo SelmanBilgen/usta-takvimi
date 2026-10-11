@@ -1,4 +1,4 @@
-name: Deploy Static Frontend to cPanel
+name: Deploy Full Stack to cPanel
 
 on:
   push:
@@ -21,7 +21,8 @@ jobs:
       - name: Install Dependencies (Monorepo Root)
         run: npm ci
 
-      # --- 1. ADIM: NEXT.JS STATIC EXPORT BUILD ---
+      # --- 1. AD```yaml
+      # --- 1. ADIM: NEXT.JS STATIC EXPORT BUILD (FRONTEND) ---
       - name: Build Next.js Frontend
         run: |
           cd apps/web
@@ -29,26 +30,28 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
-      # --- 2. ADIM: DEPLOY HAZIRLIĞI ---
-      # Static export sadece 'apps/web/out' klasörünü üretir.
-      # Bu klasörün içeriğini doğrudan FTP'ye yükleyeceğiz.
-      - name: Prepare Static Output
+      # --- 2. ADIM: BACKEND API BUILD ---
+      - name: Build Backend API
         run: |
-          # İsteğe bağlı: Eğer public klasöründeki bazı dosyaları da
-          # out/ içine kopyalamak isterseniz (örn: manifest.webmanifest
-          # export modunda otomatik kopyalanmayabilir):
-          cp -r apps/web/public/* apps/web/out/ 2>/dev/null || true
+          cd apps/api
+          npm run build
 
       # --- 3. ADIM: FRONTEND'İ CPANEL'E FTP İLE GÖNDERME ---
-      - name: Deploy to cPanel
+      - name: Deploy Frontend to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./apps/web/out/
-          server-dir: ./root/deploy/web/
-          # Not: FTP kullanırken 'server-dir' cPanel'deki doküman kökünü
-          # işaret etmelidir. Eğer FTP kullanıcısı doğrudan /root/deploy/web/
-          # dizinine erişemiyorsa, FTP kullanıcınızın ana dizinine yükleyip
-          # cPanel'de symlink kullanmanız gerekebilir.
+          server-dir: /deploy/web/
+
+      # --- 4. ADIM: BACKEND'İ CPANEL'E FTP İLE GÖNDERME ---
+      - name: Deploy Backend to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./apps/api/dist/
+          server-dir: /deploy/api/
