@@ -1,9 +1,8 @@
-name: Deploy Monorepo to cPanel
+name: Deploy Static Frontend to cPanel
 
 on:
   push:
-    branches:
-      - main # Kodlarınızı 'main' branch'ine push ettiğinizde çalışır
+    branches: [main]
 
 jobs:
   build-and-deploy:
@@ -16,12 +15,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # Spaceship cPanel'de seçtiğiniz Node sürümüyle aynı olmalı
+          node-version: 20
+          cache: npm
 
       - name: Install Dependencies (Monorepo Root)
         run: npm ci
 
-      # --- 1. ADIM: NEXT.JS FRONTEND (WEB) BUILD ---
+      # --- 1. ADIM: NEXT.JS STATIC EXPORT BUILD ---
       - name: Build Next.js Frontend
         run: |
           cd apps/web
@@ -29,46 +29,26 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
-      # --- 2. ADIM: TS BACKEND (API) BUILD ---
-      - name: Build Backend API
+      # --- 2. ADIM: DEPLOY HAZIRLIĞI ---
+      # Static export sadece 'apps/web/out' klasörünü üretir.
+      # Bu klasörün içeriğini doğrudan FTP'ye yükleyeceğiz.
+      - name: Prepare Static Output
         run: |
-          cd apps/api
-          npm run build
+          # İsteğe bağlı: Eğer public klasöründeki bazı dosyaları da
+          # out/ içine kopyalamak isterseniz (örn: manifest.webmanifest
+          # export modunda otomatik kopyalanmayabilir):
+          cp -r apps/web/public/* apps/web/out/ 2>/dev/null || true
 
-      # --- 3. ADIM: DAĞITIM DOSYALARINI (ARTIFACTS) AYIKLAMA ---
-      # Görseldeki standalone yapısını ve api çıktılarını temiz bir yere topluyoruz
-      - name: Prepare Outputs for Server
-        run: |
-          mkdir -p deploy-ready/web
-          mkdir -p deploy-ready/api
-          
-          # Web Standalone çıktılarını kopyalama
-          cp -r apps/web/.next/standalone/* deploy-ready/web/
-          cp -r apps/web/public deploy-ready/web/
-          cp -r apps/web/.next/static deploy-ready/web/.next/
-          
-          # API derlenmiş JS çıktılarını ve package dosyalarını kopyalama
-          cp -r apps/api/dist deploy-ready/api/
-          cp apps/api/package.json deploy-ready/api/
-          cp apps/api/package-lock.json deploy-ready/api/ || true
-
-      # --- 4. ADIM: FRONTEND'İ CPANEL'E FTP İLE GÖNDERME ---
-      - name: Deploy Frontend to cPanel
+      # --- 3. ADIM: FRONTEND'İ CPANEL'E FTP İLE GÖNDERME ---
+      - name: Deploy to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./deploy-ready/web/
-          server-dir: /deploy/web/ 
-          # cPanel'deki Frontend "Application Root" klasör yolunuz
-
-      # --- 5. ADIM: BACKEND'İ CPANEL'E FTP İLE GÖNDERME ---
-      - name: Deploy Backend to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./deploy-ready/api/
-          server-dir: ./deploy/api/ # cPanel'deki Backend "Application Root" klasör yolunuz
+          local-dir: ./apps/web/out/
+          server-dir: ./root/deploy/web/
+          # Not: FTP kullanırken 'server-dir' cPanel'deki doküman kökünü
+          # işaret etmelidir. Eğer FTP kullanıcısı doğrudan /root/deploy/web/
+          # dizinine erişemiyorsa, FTP kullanıcınızın ana dizinine yükleyip
+          # cPanel'de symlink kullanmanız gerekebilir.
