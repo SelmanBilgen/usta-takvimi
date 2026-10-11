@@ -1,4 +1,4 @@
-name: Deploy Full Stack to cPanel
+name: Deploy Static Frontend to cPanel
 
 on:
   push:
@@ -21,7 +21,6 @@ jobs:
       - name: Install Dependencies (Monorepo Root)
         run: npm ci
 
-      # --- 1. AD```yaml
       # --- 1. ADIM: NEXT.JS STATIC EXPORT BUILD (FRONTEND) ---
       - name: Build Next.js Frontend
         run: |
@@ -36,22 +35,39 @@ jobs:
           cd apps/api
           npm run build
 
-      # --- 3. ADIM: FRONTEND'İ CPANEL'E FTP İLE GÖNDERME ---
+      # --- 3. ADIM: DEPLOY HAZIRLIĞI ---
+      - name: Prepare Outputs for Server
+        run: |
+          mkdir -p deploy-ready/web
+          mkdir -p deploy-ready/api
+
+          # Statik export çıktısı artık 'out/' klasöründe; standalone'a gerek yok
+          cp -r apps/web/out/* deploy-ready/web/
+
+          # public/ içeriği (icon-192.png, icon-512.png vb.)
+          cp -r apps/web/public/* deploy-ready/web/ 2>/dev/null || true
+
+          # API derlenmiş çıktıları
+          cp -r apps/api/dist deploy-ready/api/
+          cp apps/api/package.json deploy-ready/api/
+          cp apps/api/package-lock.json deploy-ready/api/ || true
+
+      # --- 4. ADIM: FRONTEND'İ CPANEL'E FTP İLE GÖNDERME ---
       - name: Deploy Frontend to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./apps/web/out/
-          server-dir: ./deploy/web/
+          local-dir: ./deploy-ready/web/
+          server-dir: /deploy/web/
 
-      # --- 4. ADIM: BACKEND'İ CPANEL'E FTP İLE GÖNDERME ---
+      # --- 5. ADIM: BACKEND'İ CPANEL'E FTP İLE GÖNDERME ---
       - name: Deploy Backend to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./apps/api/dist/
-          server-dir: ./deploy/api/
+          local-dir: ./deploy-ready/api/
+          server-dir: /deploy/api/
