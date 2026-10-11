@@ -1,57 +1,73 @@
-name: Deploy to Spaceship Hosting
+name: Deploy Monorepo to cPanel
 
 on:
   push:
     branches:
-      - main # Triggers deployment when you push to your main branch
+      - main # Kodlarınızı 'main' branch'ine push ettiğinizde çalışır
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Pull down the code from GitHub
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Build the Next.js Web App and Compile the API
-      - name: Build Web App and API
-        run: |
-          # Build Frontend
-          cd apps/web
-          npm ci || npm install --legacy-peer-deps
-          npm run build
-          
-          # Build Backend API
-          cd ../api
-          npm ci || npm install --legacy-peer-deps
-          npm run build --if-present
-        env:
-          NEXT_PUBLIC_API_URL: https://atinada.com # Your live production API domain
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Spaceship cPanel'de seçtiğiniz Node sürümüyle aynı olmalı
 
-      # 3. Organize production files with corrected paths
-      - name: Organize production files
+      - name: Install Dependencies (Monorepo Root)
+        run: npm ci
+
+      # --- 1. ADIM: NEXT.JS FRONTEND (WEB) BUILD ---
+      - name: Build Next.js Frontend
         run: |
-          mkdir -p deploy/web
-          mkdir -p deploy/api
+          cd apps/web
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      # --- 2. ADIM: TS BACKEND (API) BUILD ---
+      - name: Build Backend API
+        run: |
+          cd apps/api
+          npm run build
+
+      # --- 3. ADIM: DAĞITIM DOSYALARINI (ARTIFACTS) AYIKLAMA ---
+      # Görseldeki standalone yapısını ve api çıktılarını temiz bir yere topluyoruz
+      - name: Prepare Outputs for Server
+        run: |
+          mkdir -p deploy-ready/web
+          mkdir -p deploy-ready/api
           
-          # Copy Next.js frontend build files
-          cp -r apps/web/.next deploy/web/
-          cp -r apps/web/public deploy/web/
-          cp apps/web/package.json deploy/web/
-          cp apps/web/server.js deploy/web/
+          # Web Standalone çıktılarını kopyalama
+          cp -r apps/web/.next/standalone/* deploy-ready/web/
+          cp -r apps/web/public deploy-ready/web/
+          cp -r apps/web/.next/static deploy-ready/web/.next/
           
-          # Copy compiled backend API build output
-          cp -r apps/api/dist/* deploy/api/
-          cp apps/api/package.json deploy/api/
-          
-          
-      # 4. Upload production ready bundle to Spaceship
-      - name: FTP Deploy to Spaceship Server
+          # API derlenmiş JS çıktılarını ve package dosyalarını kopyalama
+          cp -r apps/api/dist deploy-ready/api/
+          cp apps/api/package.json deploy-ready/api/
+          cp apps/api/package-lock.json deploy-ready/api/ || true
+
+      # --- 4. ADIM: FRONTEND'İ CPANEL'E FTP İLE GÖNDERME ---
+      - name: Deploy Frontend to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./deploy/
-          server-dir: ./ 
+          local-dir: ./deploy-ready/web/
+          server-dir: /deploy/web/ # cPanel'deki Frontend "Application Root" klasör yolunuz
+
+      # --- 5. ADIM: BACKEND'İ CPANEL'E FTP İLE GÖNDERME ---
+      - name: Deploy Backend to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./deploy-ready/api/
+          server-dir: /deploy/api/ # cPanel'deki Backend "Application Root" klasör yolunuz
