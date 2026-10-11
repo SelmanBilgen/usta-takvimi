@@ -30,7 +30,7 @@ jobs:
           NEXT_PUBLIC_API_URL: https://atinada.com # Your live production API domain
 
       # 3. Organize production files with corrected paths
-       - name: Organize production files
+      - name: Organize production files
         run: |
           mkdir -p deploy/web
           mkdir -p deploy/api
@@ -41,9 +41,10 @@ jobs:
           cp apps/web/package.json deploy/web/
           cp apps/web/server.js deploy/web/
           
-          # Copy the entire compiled backend build structure seamlessly
+          # Copy compiled backend API build output
           cp -r apps/api/dist/* deploy/api/
           cp apps/api/package.json deploy/api/
+          
           
       # 4. Upload production ready bundle to Spaceship
       - name: FTP Deploy to Spaceship Server
