@@ -61,6 +61,8 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     });
   }
 
+  console.error(`[${correlationId}]`, error);
+
   const dbErrorCode = error && typeof error === "object" && "code" in error ? String((error as { code?: string }).code) : "";
   const isDbError = ["ECONNREFUSED", "ER_BAD_DB_ERROR", "ER_ACCESS_DENIED_ERROR", "ENOTFOUND", "ETIMEDOUT", "PROTOCOL_CONNECTION_LOST", "ER_NO_SUCH_TABLE"].includes(dbErrorCode);
 
