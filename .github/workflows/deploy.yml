@@ -33,12 +33,16 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
+          missing=""
           for name in NEXT_PUBLIC_API_URL FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
             if [ -z "${!name}" ]; then
-              echo "::error::Repository secret $name is not set"
-              exit 1
+              missing="$missing $name"
             fi
           done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing. Add them in GitHub: Settings > Secrets and variables > Actions > New repository secret"
+            exit 1
+          fi
 
       # 1. Frontend: Next.js static export -> apps/web/out
       - name: Build Next.js Frontend
