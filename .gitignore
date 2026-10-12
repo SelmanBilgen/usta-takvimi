@@ -1,7 +1,12 @@
 node_modules
 .next
+out
 dist
 coverage
+*.tsbuildinfo
+.mysql-data/
+.venv/
+apps/api/uploads/
 .env
 .env.*
 !.env.example

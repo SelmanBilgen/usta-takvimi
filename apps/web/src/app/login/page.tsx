@@ -63,7 +63,7 @@ export default function LoginPage() {
     <main className="app-shell mobile-safe flex min-h-screen items-center">
       <div className="mx-auto grid w-full max-w-5xl overflow-hidden border border-white/70 bg-white/80 shadow-[0_26px_80px_rgba(14,38,34,0.13)] md:grid-cols-[0.9fr,1.1fr]">
         <aside className="relative hidden min-h-[620px] overflow-hidden bg-[#123b35] p-9 text-white md:flex md:flex-col md:justify-between">
-          <EditableImage imageKey="login-hero" src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=90" alt="İnşaat ekibi" className="absolute inset-0" />
+          <EditableImage imageKey="home-hero" src="/uploads/site-home-hero.jpg" alt="İnşaat ekibi" className="absolute inset-0" />
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(10,35,32,.18),rgba(10,35,32,.88))]" />
           <Link href="/" className="relative inline-flex w-fit items-center gap-2 text-sm font-bold"><Hammer size={18} /> UstaTakvimi</Link>
           <div className="relative max-w-sm"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200">Projeleriniz için usta gücü</p><h1 className="mt-4 text-4xl font-black leading-tight">Doğru uzman, doğru zamanda.</h1><p className="mt-4 text-sm leading-6 text-white/80">İnşaat ve tadilat işleriniz için uzman ekip talebinizi güvenle planlayın.</p></div>

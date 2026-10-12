@@ -61,20 +61,22 @@ select {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
-.form-control {
-  display: block;
-  width: 100%;
-  border: 1px solid #d5ddd5;
-  background: #fbfcfa;
-  padding: 0.7rem 0.8rem;
-  color: #172c28;
-  outline: none;
-  transition: border-color 150ms ease, background-color 150ms ease;
-}
+@layer components {
+  .form-control {
+    display: block;
+    width: 100%;
+    border: 1px solid #d5ddd5;
+    background: #fbfcfa;
+    padding: 0.7rem 0.8rem;
+    color: #172c28;
+    outline: none;
+    transition: border-color 150ms ease, background-color 150ms ease;
+  }
 
-.form-control:focus {
-  border-color: #b35e32;
-  background: #fff;
+  .form-control:focus {
+    border-color: #b35e32;
+    background: #fff;
+  }
 }
 
 .date-range-edge .fc-daygrid-day-frame {

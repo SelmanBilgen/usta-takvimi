@@ -39,7 +39,7 @@ export default function HomePage() {
         </header>
         <section className="relative mt-5 min-h-[570px] overflow-hidden bg-[#173f37] text-white md:min-h-[640px]">
           <div className="absolute inset-0">
-            <EditableImage imageKey="home-hero" src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1800&q=90" alt="İnşaat sahasında çalışan usta ekibi" className="h-full w-full" />
+            <EditableImage imageKey="home-hero" src="/uploads/site-home-hero.jpg" alt="İnşaat sahasında çalışan usta ekibi" className="h-full w-full" />
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(17,54,47,.94),rgba(17,54,47,.58),rgba(17,54,47,.08))]" />
           </div>
           <div className="relative flex min-h-[570px] max-w-3xl flex-col justify-center px-6 py-12 md:min-h-[640px] md:px-12">

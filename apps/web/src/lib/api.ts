@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+// Accepts "https://api.example.com", "https://api.example.com/" or the full ".../api/v1" form.
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000")
+  .replace(/\/+$/, "")
+  .replace(/\/api\/v1$/, "") + "/api/v1";
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const authToken = typeof window === "undefined"

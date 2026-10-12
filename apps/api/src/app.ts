@@ -7,18 +7,23 @@ import { availabilityRouter } from "./modules/availability/availability.routes.j
 import { requestRouter } from "./modules/requests/request.routes.js";
 import { assignmentRouter } from "./modules/assignments/assignment.routes.js";
 import { expertiseRouter } from "./modules/expertises/expertise.routes.js";
-import { managementRouter } from "./modules/admin/management.routes.js";
+import { managementRouter, uploadDirectory } from "./modules/admin/management.routes.js";
 import { adminRouter, requireAdminAuth } from "./modules/admin/admin.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { siteImagesRouter } from "./modules/site-images/site-images.routes.js";
 import { customerRouter, requireCustomerAuth } from "./modules/customer/customer.routes.js";
 import { requireWorkerAuth, workerRouter } from "./modules/worker/worker.routes.js";
 import { dbPool } from "./shared/db/pool.js";
+import { allowedCorsOrigins } from "./shared/config.js";
 
 export const app = express();
 
-app.use(cors());
+const corsOrigins = allowedCorsOrigins();
+
+app.set("trust proxy", true);
+app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined));
 app.use(express.json());
+app.use("/uploads", express.static(uploadDirectory, { maxAge: "7d", fallthrough: true }));
 
 app.get("/health", async (_req, res) => {
   try {
@@ -57,7 +62,7 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   }
 
   const dbErrorCode = error && typeof error === "object" && "code" in error ? String((error as { code?: string }).code) : "";
-  const isDbError = ["ECONNREFUSED", "ER_BAD_DB_ERROR", "ER_ACCESS_DENIED_ERROR", "ENOTFOUND"].includes(dbErrorCode);
+  const isDbError = ["ECONNREFUSED", "ER_BAD_DB_ERROR", "ER_ACCESS_DENIED_ERROR", "ENOTFOUND", "ETIMEDOUT", "PROTOCOL_CONNECTION_LOST", "ER_NO_SUCH_TABLE"].includes(dbErrorCode);
 
   if (isDbError) {
     return res.status(503).json({

@@ -6,7 +6,7 @@ import { InstallPwaButton } from "../components/install-pwa-button";
 import { PwaRegister } from "../components/pwa-register";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "UstaTakvimi",
   description: "Insaat sirketleri icin is gucu takvimi ve talep yonetimi",
   applicationName: "UstaTakvimi",

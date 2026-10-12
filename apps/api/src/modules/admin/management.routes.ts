@@ -3,8 +3,7 @@ import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { z } from "zod";
 import multer from "multer";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve, sep } from "node:path";
 
 import { dbPool } from "../../shared/db/pool.js";
 import { hashPassword } from "../../shared/auth-token.js";
@@ -72,7 +71,9 @@ const imageUpload = multer({
   }
 });
 const imageKeySchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/);
-const uploadDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../web/public/uploads");
+export const uploadDirectory = resolve(process.env.UPLOAD_DIR ?? resolve(process.cwd(), "uploads"));
+const publicApiUrl = (process.env.PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+const uploadedFileUrlPattern = /\/uploads\/([a-zA-Z0-9_-]+\.(?:jpg|png|webp))(?:\?.*)?$/;
 
 managementRouter.put("/site-images/:key", imageUpload.single("image"), async (req, res, next) => {
   let imagePath = "";
@@ -96,7 +97,7 @@ managementRouter.put("/site-images/:key", imageUpload.single("image"), async (re
     await mkdir(uploadDirectory, { recursive: true });
     imagePath = resolve(uploadDirectory, filename);
     await writeFile(imagePath, image.buffer);
-    const imageUrl = `/uploads/${filename}`;
+    const imageUrl = `${publicApiUrl}/uploads/${filename}`;
 
     if (databaseAvailable && expertiseMatch) {
       await dbPool.execute(
@@ -127,10 +128,12 @@ managementRouter.put("/site-images/:key", imageUpload.single("image"), async (re
       if (worker) worker.image_url = imageUrl;
     }
 
-    if (previousUrl?.startsWith("/uploads/")) {
-      const previousFile = previousUrl.slice("/uploads/".length).split("?")[0];
+    const previousFile = previousUrl && (previousUrl.startsWith("/uploads/") || (publicApiUrl && previousUrl.startsWith(`${publicApiUrl}/uploads/`)))
+      ? uploadedFileUrlPattern.exec(previousUrl)?.[1]
+      : undefined;
+    if (previousFile) {
       const oldPath = resolve(uploadDirectory, previousFile);
-      if (oldPath !== imagePath && oldPath.startsWith(`${uploadDirectory}/`)) await rm(oldPath, { force: true });
+      if (oldPath !== imagePath && oldPath.startsWith(`${uploadDirectory}${sep}`)) await rm(oldPath, { force: true });
     }
     return res.json({ key: imageKey, imageUrl });
   } catch (error) {

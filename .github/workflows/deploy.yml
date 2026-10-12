@@ -1,8 +1,13 @@
-name: Deploy Static Frontend to cPanel
+name: Deploy to cPanel (static web + Node API)
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
@@ -21,38 +26,49 @@ jobs:
       - name: Install Dependencies (Monorepo Root)
         run: npm ci
 
-      # --- 1. ADIM: NEXT.JS STATIC EXPORT BUILD (FRONTEND) ---
-      - name: Build Next.js Frontend
-        run: |
-          cd apps/web
-          npm run build
+      - name: Check required secrets
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-
-      # --- 2. ADIM: BACKEND API BUILD ---
-      - name: Build Backend API
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
-          cd apps/api
-          npm run build
+          for name in NEXT_PUBLIC_API_URL FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Repository secret $name is not set"
+              exit 1
+            fi
+          done
 
-      # --- 3. ADIM: DEPLOY HAZIRLIĞI ---
+      # 1. Frontend: Next.js static export -> apps/web/out
+      - name: Build Next.js Frontend
+        run: npm run build -w @ustatakvimi/web
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+      # 2. Backend: single self-contained bundle -> apps/api/dist/server.cjs
+      - name: Typecheck and Build Backend API
+        run: |
+          npm run typecheck -w @ustatakvimi/api
+          npm run build -w @ustatakvimi/api
+
+      # 3. Package both outputs
       - name: Prepare Outputs for Server
         run: |
-          mkdir -p deploy-ready/web
-          mkdir -p deploy-ready/api
+          mkdir -p deploy-ready/web deploy-ready/api/tmp
 
-          # Statik export çıktısı artık 'out/' klasöründe; standalone'a gerek yok
-          cp -r apps/web/out/* deploy-ready/web/
+          # "/." also copies dotfiles such as .htaccess
+          cp -a apps/web/out/. deploy-ready/web/
 
-          # public/ içeriği (icon-192.png, icon-512.png vb.)
-          cp -r apps/web/public/* deploy-ready/web/ 2>/dev/null || true
+          # The bundle has no runtime dependencies, so the manifest stays minimal
+          cp apps/api/dist/server.cjs deploy-ready/api/server.cjs
+          printf '{\n  "name": "usta-takvimi-api",\n  "version": "1.0.0",\n  "private": true,\n  "main": "server.cjs"\n}\n' > deploy-ready/api/package.json
 
-          # API derlenmiş çıktıları
-          cp -r apps/api/dist deploy-ready/api/
-          cp apps/api/package.json deploy-ready/api/
-          cp apps/api/package-lock.json deploy-ready/api/ || true
+          # Changing this file makes Passenger restart the Node app after each deploy
+          echo "${GITHUB_SHA}" > deploy-ready/api/tmp/restart.txt
 
-      # --- 4. ADIM: FRONTEND'İ CPANEL'E FTP İLE GÖNDERME ---
+      # 4. Frontend -> the domain's document root (default: public_html)
       - name: Deploy Frontend to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -60,9 +76,9 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./deploy-ready/web/
-          server-dir: ./deploy/web/
+          server-dir: ${{ secrets.FTP_WEB_DIR || './public_html/' }}
 
-      # --- 5. ADIM: BACKEND'İ CPANEL'E FTP İLE GÖNDERME ---
+      # 5. Backend -> the "Application root" of the cPanel Node.js app
       - name: Deploy Backend to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -70,4 +86,4 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./deploy-ready/api/
-          server-dir: ./deploy/api/
+          server-dir: ${{ secrets.FTP_API_DIR || './usta-api/' }}

@@ -1,4 +1,5 @@
 import { dbPool } from "./db/pool.js";
+import { isProduction } from "./config.js";
 
 export interface FallbackClient {
   id: number;
@@ -113,7 +114,9 @@ export async function isDatabaseAvailable(): Promise<boolean> {
   try {
     await dbPool.query("SELECT 1");
     return true;
-  } catch {
+  } catch (error) {
+    // In production an unreachable database must surface as a 503, never as demo data.
+    if (isProduction) throw error;
     return false;
   }
 }

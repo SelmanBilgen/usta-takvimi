@@ -1,8 +1,9 @@
-import dotenv from "dotenv";
+import "./shared/env.js";
 
 import { app } from "./app.js";
+import { assertProductionConfig } from "./shared/config.js";
 
-dotenv.config();
+assertProductionConfig();
 
 const port = Number(process.env.PORT ?? 4000);
 

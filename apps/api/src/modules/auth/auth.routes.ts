@@ -6,6 +6,7 @@ import { dbPool } from "../../shared/db/pool.js";
 import { createAccessToken, hashPassword, verifyPassword } from "../../shared/auth-token.js";
 import { ConflictError, UnauthorizedError } from "../../shared/errors/app-error.js";
 import { fallbackState } from "../../shared/fallback-store.js";
+import { isProduction } from "../../shared/config.js";
 
 const loginSchema = z.object({
   identifier: z.string().trim().min(3).max(254),
@@ -55,7 +56,8 @@ authRouter.post("/login", async (req, res, next) => {
         [identifier.toLowerCase()]
       );
       account = rows[0];
-    } catch {
+    } catch (error) {
+      if (isProduction) throw error;
       const fallbackAccount = fallbackState.accounts.find((item) => item.email === identifier.toLowerCase());
       account = fallbackAccount
         ? {
@@ -85,7 +87,8 @@ authRouter.post("/login", async (req, res, next) => {
         [identifier.toLowerCase()]
       );
       workerAccount = rows[0];
-    } catch {
+    } catch (error) {
+      if (isProduction) throw error;
       const fallbackAccount = fallbackState.workerAccounts.find((item) => item.email === identifier.toLowerCase());
       const worker = fallbackAccount && fallbackState.workers.find((item) => item.id === fallbackAccount.worker_id && item.daily_status === "ACTIVE");
       if (fallbackAccount && worker) {
@@ -148,6 +151,7 @@ authRouter.post("/register", async (req, res, next) => {
       if (!(error && typeof error === "object" && "code" in error && ["ECONNREFUSED", "ER_BAD_DB_ERROR", "ER_NO_SUCH_TABLE"].includes(String(error.code)))) {
         throw error;
       }
+      if (isProduction) throw error;
       if (fallbackState.accounts.some((item) => item.email === email)) {
         throw new ConflictError("Bu e-posta adresiyle bir hesap zaten var");
       }
