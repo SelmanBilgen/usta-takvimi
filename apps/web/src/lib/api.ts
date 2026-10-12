@@ -1,5 +1,6 @@
 // Accepts "https://api.example.com", "https://api.example.com/" or the full ".../api/v1" form.
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000")
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:4000";
+const API_BASE_URL = (/^https?:\/\//i.test(RAW_API_URL) ? RAW_API_URL : `https://${RAW_API_URL}`)
   .replace(/\/+$/, "")
   .replace(/\/api\/v1$/, "") + "/api/v1";
 
